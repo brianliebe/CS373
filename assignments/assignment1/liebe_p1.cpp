@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 #include <utility>
+#include <algorithm>
 
 using namespace std;
 
@@ -19,14 +20,17 @@ struct transition {
 	int destination;
 };
 
-int main(int argc, char **argv) {
+int main(int, char **argv) {
 	ifstream input(argv[1]);
-	string key = argv[2]; 
+	string key(argv[2]);
+
 	vector<struct state> states;
 	vector<pair<struct state, string>> queue;
 	vector<struct state> accepts;
 	vector<struct transition> transitions;
-	
+	vector<int> accepted;
+	vector<int> rejected;
+
 	string line;
 	while (getline(input, line)) {
 		string data;
@@ -54,41 +58,73 @@ int main(int argc, char **argv) {
 			transitions.push_back(temp_transition);
 		}
 	}
-
+	/*
 	for (unsigned int i = 0; i < states.size(); i++) { 
 		cout << "state:" << states[i].state << " acc:" << states[i].accept << " start:" << states[i].start << endl;
 	}
 	for (unsigned int i = 0; i < transitions.size(); i++) {
 		cout << "src:" << transitions[i].source << " val:" << transitions[i].value << " dest:" << transitions[i].destination << endl;
 	}
-
+	*/
 	while (queue.size()) {
 		pair<struct state, string> current_state = queue.at(queue.size() - 1);
-		string transition_value = string(1, current_state.second[0]);
-		string new_value = current_state.second;
-
-		new_value.erase(new_value.begin() + 0);
 		queue.pop_back();
-		vector<struct transition> state_transitions;
-		
-		for (unsigned int i = 0; i < transitions.size(); i++) {
-			if (transitions[i].source == current_state.first.state && transitions[i].value == transition_value) {
-				struct state temp_state { temp_state.state = transitions[i].destination, temp_state.accept = 0, temp_state.start = 0 };
-				for (unsigned int j = 0; j < states.size(); j++) {
-					if (states[j].state == temp_state.state) {
-						temp_state.accept = states[j].accept;
-						temp_state.start = states[j].start;
-						break;
-					}
+
+		if (!current_state.second.compare("")) {
+			if (current_state.first.accept == 1) {
+				int found = 0;
+				for (unsigned int i = 0; i < accepted.size(); i++) {
+					if (accepted[i] == current_state.first.state) found = 1;
 				}
-				queue.push_back(make_pair(temp_state, new_value));
+				if (!found) accepted.push_back(current_state.first.state);
+			}
+			else {
+				int found = 0;
+				for (unsigned int i = 0; i < rejected.size(); i++) {
+					if (rejected[i] == current_state.first.state) found = 1;
+				}
+				if (!found) rejected.push_back(current_state.first.state);
 			}
 		}
-		
-		cout << new_value << endl;
+		else {
+			string transition_value = string(1, current_state.second[0]);
+			string new_value = current_state.second;
+			new_value.erase(new_value.begin() + 0);
+
+			for (unsigned int i = 0; i < transitions.size(); i++) {
+				if (transitions[i].source == current_state.first.state && transitions[i].value == transition_value) {
+					struct state temp_state;
+					temp_state.accept = 0;
+					temp_state.start = 0;
+					temp_state.state = transitions[i].destination;
+					for (unsigned int j = 0; j < states.size(); j++) {
+						if (states[j].state == temp_state.state) {
+							temp_state.accept = states[j].accept;
+							temp_state.start = states[j].start;
+							break;
+						}
+					}
+					queue.push_back(make_pair(temp_state, new_value));
+				}
+			}
+		}
 	}
-
-	cout << argc << endl;
-
+	sort(accepted.begin(), accepted.end());
+	sort(rejected.begin(), rejected.end());
+	
+	if (accepted.size()) {
+		cout << "accept";
+		for (unsigned int i = 0; i < accepted.size(); i++) {
+			cout << " " << accepted.at(i);
+		}
+		cout << endl;
+	}
+	else {
+		cout << "reject";
+		for (unsigned int i = 0; i < rejected.size(); i++) {
+			cout << " " << rejected.at(i);
+		}
+		cout << endl;
+	}
 	return 0;
 }
